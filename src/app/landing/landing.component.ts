@@ -18,23 +18,39 @@ export class LandingComponent implements AfterViewInit {
 
   showLetter = false;
   isPlaying = false;
+  showEnvelope = true;
+  envelopeOpening = false;
+
+  openEnvelope() {
+    if (this.envelopeOpening) return;
+    this.envelopeOpening = true;
+    // Tras la animación de apertura, ocultamos el sobre y mostramos el contenido
+    setTimeout(() => {
+      this.showEnvelope = false;
+    }, 1400);
+  }
 
   @ViewChild('audioPlayer') audioPlayer!: ElementRef<HTMLAudioElement>;
 
   ngAfterViewInit() {
-
     const audio = this.audioPlayer.nativeElement;
     audio.volume = 0.25;
 
-    if (this.audioPlayer && this.audioPlayer.nativeElement) {
-      // Intentamos reproducir automáticamente al cargar la vista
-      this.audioPlayer.nativeElement.play().then(() => {
-        this.isPlaying = true;
-      }).catch(e => {
-        console.warn("Autoplay preventivo: el navegador bloqueó la música por falta de interacción", e);
-        this.isPlaying = false;
-      });
-    }
+    // Los navegadores bloquean autoplay sin interacción previa del usuario.
+    // Intentamos reproducir de inmediato; si falla, esperamos el primer click.
+    audio.play().then(() => {
+      this.isPlaying = true;
+    }).catch(() => {
+      const startOnInteraction = () => {
+        audio.play().then(() => {
+          this.isPlaying = true;
+        }).catch(() => {});
+        document.removeEventListener('click', startOnInteraction);
+        document.removeEventListener('keydown', startOnInteraction);
+      };
+      document.addEventListener('click', startOnInteraction);
+      document.addEventListener('keydown', startOnInteraction);
+    });
   }
 
   toggleView() {
